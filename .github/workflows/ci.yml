@@ -35,13 +35,20 @@ jobs:
         run: |
           python -m py_compile main.py
 
-      # Étape 5 : Compile et construit l'image Docker
-      - name: 5. Valider la construction de l'image Docker
+      # Étape 5 : Exécute la suite de tests unitaires automatisés avec pytest
+      - name: 5. Exécuter les tests unitaires (pytest)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          pytest
+
+      # Étape 6 : Compile et construit l'image Docker
+      - name: 6. Valider la construction de l'image Docker
         run: |
           docker build -t edona-backend:test .
 
-      # Étape 6 : Lance le conteneur avec le Secret GitHub et valide la route /health
-      - name: 6. Tester le lancement du conteneur
+      # Étape 7 : Lance le conteneur avec le Secret GitHub et valide la route /health
+      - name: 7. Tester le lancement du conteneur
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |

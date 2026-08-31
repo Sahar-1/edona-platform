@@ -1,0 +1,30 @@
+﻿services:
+  # Service 1 : Base de données PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: edona-db
+    restart: always
+    environment:
+      POSTGRES_USER: edona_user
+      POSTGRES_PASSWORD: edona_password
+      POSTGRES_DB: edona_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Service 2 : API Backend FastAPI
+  backend:
+    build: .
+    container_name: edona-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://edona_user:edona_password@db:5432/edona_db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

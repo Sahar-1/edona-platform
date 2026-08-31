@@ -1,0 +1,50 @@
+﻿# Nom affiché dans l'onglet Actions sur GitHub
+name: EDONA Backend CI Pipeline
+
+# Déclencheurs : s'exécute à chaque push ou PR sur la branche main
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    # Machine virtuelle Ubuntu Linux temporaire fournie par GitHub
+    runs-on: ubuntu-latest
+
+    steps:
+      # Étape 1 : Récupère le code source du dépôt
+      - name: 1. Récupérer le code source
+        uses: actions/checkout@v4
+
+      # Étape 2 : Installe l'environnement Python 3.11
+      - name: 2. Configurer Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Étape 3 : Installe pip et les dépendances du projet
+      - name: 3. Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Étape 4 : Compile main.py pour détecter les erreurs de syntaxe
+      - name: 4. Vérifier la syntaxe du code (Linting)
+        run: |
+          python -m py_compile main.py
+
+      # Étape 5 : Compile et construit l'image Docker
+      - name: 5. Valider la construction de l'image Docker
+        run: |
+          docker build -t edona-backend:test .
+
+      # Étape 6 : Lance le conteneur avec le Secret GitHub et valide la route /health
+      - name: 6. Tester le lancement du conteneur
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          docker run -d -p 8000:8000 --name test-container -e OPENAI_API_KEY=$OPENAI_API_KEY edona-backend:test
+          sleep 5
+          curl --fail http://localhost:8000/health || exit 1

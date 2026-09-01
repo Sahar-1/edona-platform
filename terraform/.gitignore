@@ -1,0 +1,13 @@
+# Fichiers d'état et dossiers temporaires Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+
+# Plans de déploiement enregistrés
+*-pipeline.json
+tfplan
+
+# Exceptions (garder le lockfile pour verrouiller les versions des providers)
+!.terraform.lock.hcl

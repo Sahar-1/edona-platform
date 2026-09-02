@@ -11,8 +11,9 @@ ENV PYTHONUNBUFFERED=1
 # 4. Copier d'abord les dépendances pour bénéficier du cache Docker
 COPY requirements.txt .
 
-# 5. Installer les dépendances
-RUN pip install --no-cache-dir -r requirements.txt
+# 5. Mettre à jour les outils de build de base puis installer les dépendances
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
 
 # 6. Copier tout le reste du code source
 COPY . .

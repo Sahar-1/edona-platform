@@ -35,10 +35,10 @@ jobs:
         run: |
           python -m py_compile main.py
 
-      # Étape 5 : Analyse de sécurité Bandit
+      # Étape 5 : Analyse de sécurité Bandit (ignore B101/assert et exclut cli.py et les tests)
       - name: 5. Analyse de sécurité (Bandit)
         run: |
-          bandit -r . -x ./test_*.py,./cli.py -sk B101 || exit 1
+          bandit -r . -x ./cli.py,./test_main.py -s B101 || exit 1
 
       # Étape 6 : Exécute la suite de tests unitaires avec pytest
       - name: 6. Exécuter les tests unitaires (pytest)

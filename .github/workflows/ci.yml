@@ -32,12 +32,13 @@ jobs:
         run: |
           bandit -r . -x ./cli.py,./test_main.py -s B101 || exit 1
 
+      # Utilisation de l'image communautaire gratuite de LocalStack pour éviter les demandes de licence
       - name: 6. Créer le réseau Docker et démarrer LocalStack
         run: |
           docker network create ci-network
-          docker run -d -p 4566:4566 --network ci-network --name localstack localstack/localstack:latest
+          docker run -d -p 4566:4566 --network ci-network --name localstack localstack/localstack:3.0
           
-          echo "Attente de l'initialisation complète du service LocalStack S3..."
+          echo "Attente de l'initialisation de LocalStack..."
           timeout 60s bash -c 'until curl -s http://localhost:4566/_localstack/health | grep -q "\"s3\": \"running\"\|\"s3\": \"available\""; do sleep 2; done' || sleep 10
 
       - name: 7. Exécuter les tests unitaires (pytest)

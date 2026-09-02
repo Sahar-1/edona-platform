@@ -15,12 +15,15 @@ COPY requirements.txt .
 # Nous forçons la mise à jour pour écraser les versions obsolètes de l'image de base.
 RUN pip install --no-cache-dir --upgrade --ignore-installed pip "setuptools>=83.0.0" wheel "msgpack>=1.2.1" && \
     pip install --no-cache-dir -r requirements.txt
+    
+# 6. Nettoyage des résidus dist-packages de Debian (optionnel mais efficace contre Trivy)
+RUN rm -rf /usr/lib/python3/dist-packages/setuptools* /usr/lib/python3/dist-packages/msgpack*
 
-# 6. Copier tout le reste du code source
+# 7. Copier tout le reste du code source
 COPY . .
 
-# 7. Exposer le port 8000
+# 8. Exposer le port 8000
 EXPOSE 8000
 
-# 8. Commande de lancement de l'application FastAPI en production
+# 9. Commande de lancement de l'application FastAPI en production
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

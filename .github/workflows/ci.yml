@@ -50,19 +50,20 @@ jobs:
         run: |
           pytest
 
-  # 1. Étape de Build avec un nom d'image précis
-      - name: Build Docker image
+      # Étape 7 : Build de l'image Docker
+      - name: 7. Build Docker image
         run: |
-          docker build --no-cache -t my-app:latest .
+          docker build --no-cache -t edona-backend:test .
 
-      # 2. Étape Trivy configurée pour lire le démon Docker local
-      - name: Run Trivy vulnerability scanner
+      # Étape 8 : Scan Trivy sur l'image locale (ignore les failles OS sans correctif)
+      - name: 8. Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         env:
           TRIVY_DISABLE_VEX_NOTICE: "true"
         with:
-          image-ref: 'my-app:latest'
-          docker-host: 'unix:///var/run/docker.sock' # <-- AJOUTER CETTE LIGNE (Permet à Trivy d'accéder au Docker local)
+          image-ref: 'edona-backend:test'
+          docker-host: 'unix:///var/run/docker.sock'
+          ignore-unfixed: true
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'

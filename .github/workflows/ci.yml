@@ -50,10 +50,10 @@ jobs:
         run: |
           pytest
 
-      # Étape 7 : Compile et construit l'image Docker
+     # Étape 7 : Compile et construit l'image Docker (sans cache)
       - name: 7. Valider la construction de l'image Docker
         run: |
-          docker build -t edona-backend:test .
+          docker build --no-cache -t edona-backend:test .
 
       # Étape 8 : Scan de vulnérabilités de l'image Docker avec Trivy
       - name: 8. Scanner les vulnérabilités de l'image Docker (Trivy)

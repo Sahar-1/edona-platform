@@ -16,8 +16,8 @@ def health():
     Vérifie la santé de l'API FastAPI EDONA.
     """
     try:
-        # L'endpoint /health correspond exactement à celui défini dans main.py
-        response = requests.get(f"{API_BASE_URL}/health")
+        # Ajout de timeout=10 pour sécuriser la requête (conforme Bandit B113)
+        response = requests.get(f"{API_BASE_URL}/health", timeout=10)
         response.raise_for_status()
         data = response.json()
         panel = Panel(
@@ -42,9 +42,8 @@ def list_items():
     Affiche la liste des objets depuis l'API EDONA dans un tableau.
     """
     try:
-        # Met à jour ici si jamais l'endpoint n'était pas correct.
-        # L'API utilise bien /api/v1/items pour la liste (correspond à main.py).
-        response = requests.get(f"{API_BASE_URL}/api/v1/items")
+        # Ajout de timeout=10 pour sécuriser la requête (conforme Bandit B113)
+        response = requests.get(f"{API_BASE_URL}/api/v1/items", timeout=10)
         response.raise_for_status()
         items = response.json()
         table = Table(title="Objets EDONA", box=box.ROUNDED)

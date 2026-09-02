@@ -32,14 +32,13 @@ jobs:
         run: |
           bandit -r . -x ./cli.py,./test_main.py -s B101 || exit 1
 
-      # Crée un réseau Docker partagé
       - name: 6. Créer le réseau Docker et démarrer LocalStack
         run: |
           docker network create ci-network
           docker run -d -p 4566:4566 --network ci-network --name localstack localstack/localstack:latest
           
-          # Attendre que le port LocalStack soit réellement ouvert et à l'écoute
-          timeout 30 bash -c 'until echo > /dev/tcp/localhost/4566; do sleep 1; done'
+          echo "Attente de l'initialisation complète du service LocalStack S3..."
+          timeout 60s bash -c 'until curl -s http://localhost:4566/_localstack/health | grep -q "\"s3\": \"running\"\|\"s3\": \"available\""; do sleep 2; done' || sleep 10
 
       - name: 7. Exécuter les tests unitaires (pytest)
         env:
@@ -71,8 +70,6 @@ jobs:
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
 
-      # Exécute le conteneur dans le réseau partagé 'ci-network' avec le nom d'hôte 'localstack'
-     # Étape 10 : Lancement et vérification de santé du conteneur
       - name: 10. Tester le lancement du conteneur
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -93,10 +90,12 @@ jobs:
             -e AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION \
             edona-backend:test
           
-          sleep 5
+          sleep 12
 
           if ! curl --retry 5 --retry-delay 3 --retry-connrefused http://localhost:8000/health; then
-            echo "=== ERREUR DETECTEE : AFFICHAGE DES LOGS ==="
+            echo "=== ERREUR DETECTEE : LOGS DU CONTENEUR FASTAPI ==="
             docker logs test-container
+            echo "=== LOGS DE LOCALSTACK ==="
+            docker logs localstack
             exit 1
           fi

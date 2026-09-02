@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: edona-backend
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/Sahar-1/edona-platform.git' # Votre dépôt Git
+    targetRevision: HEAD                                    # Branche à suivre
+    path: k8s                                              # Dossier contenant les .yaml
+  destination:
+    server: 'https://kubernetes.default.svc'               # Cluster Minikube local
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true                                           # Supprime dans K8s ce qui est effacé dans Git
+      selfHeal: true                                        # Force la remise à niveau si modification manuelle

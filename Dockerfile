@@ -17,7 +17,9 @@ RUN pip install --no-cache-dir --upgrade --ignore-installed pip "setuptools>=83.
     pip install --no-cache-dir -r requirements.txt
     
 # 6. Nettoyage des résidus dist-packages de Debian (optionnel mais efficace contre Trivy)
-RUN rm -rf /usr/lib/python3/dist-packages/setuptools* /usr/lib/python3/dist-packages/msgpack*
+RUN rm -rf /usr/lib/python3/dist-packages/setuptools* \
+           /usr/lib/python3/dist-packages/msgpack* \
+           /usr/lib/python3/dist-packages/pip*
 
 # 7. Copier tout le reste du code source
 COPY . .

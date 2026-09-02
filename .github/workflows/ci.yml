@@ -70,7 +70,7 @@ jobs:
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
 
-     # Étape 9 : Lance le conteneur avec variables d'environnement et valide /health
+    # Étape 9 : Lancement du conteneur et vérification de santé avec retries
       - name: 9. Tester le lancement du conteneur
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -82,6 +82,13 @@ jobs:
             -e DATABASE_URL=$DATABASE_URL \
             -e AWS_ENDPOINT_URL=$AWS_ENDPOINT_URL \
             edona-backend:test
-          sleep 5
-          docker logs test-container   # <-- AFFICHE LES LOGS DU CONTENEUR
-          curl --fail http://localhost:8000/health || exit 1
+          
+          # Laisser 10 secondes au serveur pour finaliser son démarrage
+          sleep 10
+
+          # Essayer d'atteindre /health avec des tentatives répétées (max 30s)
+          curl --retry 5 --retry-delay 3 --retry-connrefused http://localhost:8000/health || {
+            echo "=== CRASH DÉTECTÉ : LOGS DU CONTENEUR ==="
+            docker logs test-container
+            exit 1
+          }

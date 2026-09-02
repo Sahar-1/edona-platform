@@ -50,23 +50,22 @@ jobs:
         run: |
           pytest
 
-     # Étape 7 : Compile et construit l'image Docker (sans cache)
-      - name: 7. Valider la construction de l'image Docker
+  # 1. Étape de Build avec un nom d'image précis
+      - name: Build Docker image
         run: |
-          docker build --no-cache -t edona-backend:test .
+          docker build --no-cache -t my-app:latest .
 
-      # Étape 8 : Scan de vulnérabilités de l'image Docker avec Trivy
-      # Étape : Scan Trivy ciblant EXACTEMENT la même image
+      # 2. Étape Trivy configurée pour lire le démon Docker local
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         env:
           TRIVY_DISABLE_VEX_NOTICE: "true"
         with:
-          image-ref: 'my-app:latest' # Doit correspondre EXACTEMENT au tag du build
-          scan-type: 'image'         # S'assurer que le scan est de type 'image' et non 'fs'
+          image-ref: 'my-app:latest'
+          docker-host: 'unix:///var/run/docker.sock' # <-- AJOUTER CETTE LIGNE (Permet à Trivy d'accéder au Docker local)
           format: 'table'
           exit-code: '1'
-          severity: 'CRITICAL,HIGH'   # Optionnel: ignore MEDIUM pour ne bloquer qu'en cas de risques majeurs
+          severity: 'CRITICAL,HIGH'
 
       # Étape 9 : Lance le conteneur avec variables d'environnement et valide /health
       - name: 9. Tester le lancement du conteneur

@@ -70,7 +70,7 @@ jobs:
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
 
-      # Étape 9 : Lance le conteneur avec variables d'environnement et valide /health
+     # Étape 9 : Lance le conteneur avec variables d'environnement et valide /health
       - name: 9. Tester le lancement du conteneur
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -83,4 +83,5 @@ jobs:
             -e AWS_ENDPOINT_URL=$AWS_ENDPOINT_URL \
             edona-backend:test
           sleep 5
+          docker logs test-container   # <-- AFFICHE LES LOGS DU CONTENEUR
           curl --fail http://localhost:8000/health || exit 1

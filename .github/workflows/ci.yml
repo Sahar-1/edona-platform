@@ -1,7 +1,5 @@
-﻿# Nom affiché dans l'onglet Actions sur GitHub
-name: EDONA Backend CI Pipeline
+﻿name: EDONA Backend CI Pipeline
 
-# Déclencheurs : s'exécute à chaque push ou PR sur la branche main
 on:
   push:
     branches: [ "main" ]
@@ -10,43 +8,39 @@ on:
 
 jobs:
   build-and-test:
-    # Machine virtuelle Ubuntu Linux temporaire
     runs-on: ubuntu-latest
 
     steps:
-      # Étape 1 : Récupère le code source du dépôt
       - name: 1. Récupérer le code source
         uses: actions/checkout@v4
 
-      # Étape 2 : Installe l'environnement Python 3.11
       - name: 2. Configurer Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # Étape 3 : Installe pip et les dépendances du projet
       - name: 3. Installer les dépendances
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Étape 4 : Compile main.py pour détecter les erreurs de syntaxe
       - name: 4. Vérifier la syntaxe du code (Linting)
         run: |
           python -m py_compile main.py
 
-      # Étape 5 : Analyse de sécurité Bandit (ignore B101/assert et exclut cli.py et les tests)
       - name: 5. Analyse de sécurité (Bandit)
         run: |
           bandit -r . -x ./cli.py,./test_main.py -s B101 || exit 1
 
-      # Étape 6 : Démarrer LocalStack pour fournir le service S3 mocké
-      - name: 6. Démarrer LocalStack (S3)
+      # Crée un réseau Docker partagé
+      - name: 6. Créer le réseau Docker et démarrer LocalStack
         run: |
-          docker run -d -p 4566:4566 --name localstack localstack/localstack:latest
-          sleep 5
+          docker network create ci-network
+          docker run -d -p 4566:4566 --network ci-network --name localstack localstack/localstack:latest
+          
+          # Attendre que le port LocalStack soit réellement ouvert et à l'écoute
+          timeout 30 bash -c 'until echo > /dev/tcp/localhost/4566; do sleep 1; done'
 
-      # Étape 7 : Exécute la suite de tests unitaires avec pytest
       - name: 7. Exécuter les tests unitaires (pytest)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -59,12 +53,10 @@ jobs:
         run: |
           pytest
 
-      # Étape 8 : Build de l'image Docker
       - name: 8. Build Docker image
         run: |
           docker build --no-cache -t edona-backend:test .
 
-      # Étape 9 : Scan Trivy avec prise en compte du .trivyignore
       - name: 9. Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         env:
@@ -79,19 +71,18 @@ jobs:
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
 
-      # Étape 10 : Lancement du conteneur avec redirection de l'hôte LocalStack
+      # Exécute le conteneur dans le réseau partagé 'ci-network' avec le nom d'hôte 'localstack'
       - name: 10. Tester le lancement du conteneur
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DATABASE_URL: sqlite:///./test.db
-          AWS_ENDPOINT_URL: http://host.docker.internal:4566
+          AWS_ENDPOINT_URL: http://localstack:4566
           AWS_S3_BUCKET: edona-item-images-bucket
           AWS_ACCESS_KEY_ID: test
           AWS_SECRET_ACCESS_KEY: test
           AWS_DEFAULT_REGION: us-east-1
         run: |
-          docker run -d -p 8000:8000 --name test-container \
-            --add-host=host.docker.internal:host-gateway \
+          docker run -d -p 8000:8000 --network ci-network --name test-container \
             -e OPENAI_API_KEY=$OPENAI_API_KEY \
             -e DATABASE_URL=$DATABASE_URL \
             -e AWS_ENDPOINT_URL=$AWS_ENDPOINT_URL \
@@ -101,7 +92,7 @@ jobs:
             -e AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION \
             edona-backend:test
           
-          sleep 10
+          sleep 5
 
           curl --retry 5 --retry-delay 3 --retry-connrefused http://localhost:8000/health || {
             echo "=== LOGS DU CONTENEUR EN CAS D'ÉCHEC ==="

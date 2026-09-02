@@ -72,6 +72,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       # Exécute le conteneur dans le réseau partagé 'ci-network' avec le nom d'hôte 'localstack'
+     # Étape 10 : Lancement et vérification de santé du conteneur
       - name: 10. Tester le lancement du conteneur
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -94,8 +95,8 @@ jobs:
           
           sleep 5
 
-          curl --retry 5 --retry-delay 3 --retry-connrefused http://localhost:8000/health || {
-            echo "=== LOGS DU CONTENEUR EN CAS D'ÉCHEC ==="
+          if ! curl --retry 5 --retry-delay 3 --retry-connrefused http://localhost:8000/health; then
+            echo "=== ERREUR DETECTEE : AFFICHAGE DES LOGS ==="
             docker logs test-container
             exit 1
-          }
+          fi

@@ -40,23 +40,32 @@ jobs:
         run: |
           bandit -r . -x ./cli.py,./test_main.py -s B101 || exit 1
 
-      # Étape 6 : Exécute la suite de tests unitaires avec pytest
-      - name: 6. Exécuter les tests unitaires (pytest)
+      # Étape 6 : Démarrer LocalStack pour fournir le service S3 mocké
+      - name: 6. Démarrer LocalStack (S3)
+        run: |
+          docker run -d -p 4566:4566 --name localstack localstack/localstack:latest
+          sleep 5
+
+      # Étape 7 : Exécute la suite de tests unitaires avec pytest
+      - name: 7. Exécuter les tests unitaires (pytest)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DATABASE_URL: sqlite:///./test.db
           AWS_ENDPOINT_URL: http://localhost:4566
           AWS_S3_BUCKET: edona-item-images-bucket
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_DEFAULT_REGION: us-east-1
         run: |
           pytest
 
-      # Étape 7 : Build de l'image Docker
-      - name: 7. Build Docker image
+      # Étape 8 : Build de l'image Docker
+      - name: 8. Build Docker image
         run: |
           docker build --no-cache -t edona-backend:test .
 
-  # Étape 8 : Scan Trivy avec prise en compte du .trivyignore
-      - name: 8. Run Trivy vulnerability scanner
+      # Étape 9 : Scan Trivy avec prise en compte du .trivyignore
+      - name: 9. Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         env:
           TRIVY_DISABLE_VEX_NOTICE: "true"
@@ -64,31 +73,38 @@ jobs:
           scan-type: 'image'
           image-ref: 'edona-backend:test'
           docker-host: 'unix:///var/run/docker.sock'
-          trivyignores: '.trivyignore'         # <-- AJOUT DE CETTE LIGNE
+          trivyignores: '.trivyignore'
           ignore-unfixed: true
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
 
-    # Étape 9 : Lancement du conteneur et vérification de santé avec retries
-      - name: 9. Tester le lancement du conteneur
+      # Étape 10 : Lancement du conteneur avec redirection de l'hôte LocalStack
+      - name: 10. Tester le lancement du conteneur
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DATABASE_URL: sqlite:///./test.db
-          AWS_ENDPOINT_URL: http://localhost:4566
+          AWS_ENDPOINT_URL: http://host.docker.internal:4566
+          AWS_S3_BUCKET: edona-item-images-bucket
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_DEFAULT_REGION: us-east-1
         run: |
           docker run -d -p 8000:8000 --name test-container \
+            --add-host=host.docker.internal:host-gateway \
             -e OPENAI_API_KEY=$OPENAI_API_KEY \
             -e DATABASE_URL=$DATABASE_URL \
             -e AWS_ENDPOINT_URL=$AWS_ENDPOINT_URL \
+            -e AWS_S3_BUCKET=$AWS_S3_BUCKET \
+            -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+            -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+            -e AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION \
             edona-backend:test
           
-          # Laisser 10 secondes au serveur pour finaliser son démarrage
           sleep 10
 
-          # Essayer d'atteindre /health avec des tentatives répétées (max 30s)
           curl --retry 5 --retry-delay 3 --retry-connrefused http://localhost:8000/health || {
-            echo "=== CRASH DÉTECTÉ : LOGS DU CONTENEUR ==="
+            echo "=== LOGS DU CONTENEUR EN CAS D'ÉCHEC ==="
             docker logs test-container
             exit 1
           }

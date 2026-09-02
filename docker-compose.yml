@@ -26,5 +26,16 @@
     depends_on:
       - db
 
+  # Service 3 : LocalStack pour S3 (mock AWS)
+ # Service 3 : LocalStack pour S3 (mock AWS)
+  localstack:
+    image: localstack/localstack:3.0.0
+    container_name: edona-localstack
+    restart: always
+    environment:
+      - SERVICES=s3
+    ports:
+      - "4566:4566"
+
 volumes:
   postgres_data:

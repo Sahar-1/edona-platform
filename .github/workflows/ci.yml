@@ -35,20 +35,34 @@ jobs:
         run: |
           python -m py_compile main.py
 
-      # Étape 5 : Exécute la suite de tests unitaires automatisés avec pytest
-      - name: 5. Exécuter les tests unitaires (pytest)
+      # Étape 5 : Analyse de sécurité Bandit
+      - name: 5. Analyse de sécurité (Bandit)
+        run: |
+          bandit -r . || exit 1
+
+      # Étape 6 : Exécute la suite de tests unitaires automatisés avec pytest
+      - name: 6. Exécuter les tests unitaires (pytest)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           pytest
 
-      # Étape 6 : Compile et construit l'image Docker
-      - name: 6. Valider la construction de l'image Docker
+      # Étape 7 : Compile et construit l'image Docker
+      - name: 7. Valider la construction de l'image Docker
         run: |
           docker build -t edona-backend:test .
 
-      # Étape 7 : Lance le conteneur avec le Secret GitHub et valide la route /health
-      - name: 7. Tester le lancement du conteneur
+      # Étape 8 : Scan de vulnérabilités de l'image Docker avec Trivy
+      - name: 8. Scanner les vulnérabilités de l'image Docker (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'edona-backend:test'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      # Étape 9 : Lance le conteneur avec le Secret GitHub et valide la route /health
+      - name: 9. Tester le lancement du conteneur
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |

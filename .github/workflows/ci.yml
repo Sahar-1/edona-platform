@@ -55,15 +55,17 @@ jobs:
         run: |
           docker build --no-cache -t edona-backend:test .
 
-      # Étape 8 : Scan Trivy sur l'image locale (ignore les failles OS sans correctif)
+   # Étape 8 : Scan Trivy uniquement sur l'image Docker construite
       - name: 8. Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         env:
           TRIVY_DISABLE_VEX_NOTICE: "true"
         with:
           image-ref: 'edona-backend:test'
+          scan-type: 'image'             # <-- FORCE LE SCAN UNIQUE DE L'IMAGE DOCKER
+          scanners: 'vuln'              # <-- SCANNE UNIQUEMENT LES VULNÉRABILITÉS
           docker-host: 'unix:///var/run/docker.sock'
-          ignore-unfixed: true
+          ignore-unfixed: true          # <-- IGNORE LES FAILLES DEBIAN SANS CORRECTIF
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'

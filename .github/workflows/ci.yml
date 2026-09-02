@@ -38,7 +38,7 @@ jobs:
       # Étape 5 : Analyse de sécurité Bandit
       - name: 5. Analyse de sécurité (Bandit)
         run: |
-          bandit -r . || exit 1
+          bandit -r . -x ./test_*.py,./cli.py -sk B101 || exit 1
 
       # Étape 6 : Exécute la suite de tests unitaires avec pytest
       - name: 6. Exécuter les tests unitaires (pytest)

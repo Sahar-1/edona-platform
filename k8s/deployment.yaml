@@ -1,0 +1,51 @@
+# Version de l'API Kubernetes utilisée pour les déploiements de workloads
+apiVersion: apps/v1
+# Type de ressource : Deployment (Gère le cycle de vie et le scaling de tes conteneurs)
+kind: Deployment
+metadata:
+  name: edona-backend        # Nom identifiant le déploiement dans le cluster
+  labels:
+    app: edona-backend       # Label d'organisation
+spec:
+  replicas: 2                # Kubernetes maintiendra toujours 2 copies identiques (Pods) tournant en parallèle
+  selector:
+    matchLabels:
+      app: edona-backend     # Cible les pods portant ce label
+  template:
+    metadata:
+      labels:
+        app: edona-backend   # Étiquette appliquée aux pods créés par ce déploiement
+    spec:
+      containers:
+      - name: backend        # Nom du conteneur au sein du Pod
+        image: edona-backend:latest  # Image Docker à exécuter
+        ports:
+        - containerPort: 8000        # Port interne sur lequel FastAPI écoute dans le conteneur
+        env:                         # Variables d'environnement injectées dans le conteneur
+        - name: DATABASE_URL
+          value: "postgresql://edona_user:edona_password@edona-postgres:5432/edona_db"
+        - name: AWS_ENDPOINT_URL
+          value: "http://edona-localstack:4566"
+        resources:                  # Gestion du matériel attribué par le cluster K8s
+          limits:                   # Plafond maximal de ressources autorisé
+            cpu: "500m"             # 0.5 cœur CPU max
+            memory: "512Mi"         # 512 Mo de RAM max
+          requests:                 # Ressources minimales garanties pour réserver le Pod
+            cpu: "250m"             # 0.25 cœur CPU réservé
+            memory: "256Mi"         # 256 Mo de RAM réservés
+---
+# Séparateur YAML permettant de définir une seconde ressource dans le même fichier
+
+# Version de l'API pour le réseau basique
+apiVersion: v1
+# Type de ressource : Service (Load balancer interne / Point d'accès réseau stable)
+kind: Service
+metadata:
+  name: edona-backend-service   # Nom DNS interne du service dans le cluster
+spec:
+  type: ClusterIP               # Service accessible uniquement à l'intérieur du cluster K8s
+  ports:
+  - port: 8000                  # Port exposé par le Service pour les autres composants du cluster
+    targetPort: 8000            # Port cible redirigé sur les Pods FastAPI
+  selector:
+    app: edona-backend          # Distribue le trafic réseau entre tous les pods portant ce label

@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-and-test:
-    # Machine virtuelle Ubuntu Linux temporaire fournie par GitHub
+    # Machine virtuelle Ubuntu Linux temporaire
     runs-on: ubuntu-latest
 
     steps:
@@ -40,10 +40,13 @@ jobs:
         run: |
           bandit -r . || exit 1
 
-      # Étape 6 : Exécute la suite de tests unitaires automatisés avec pytest
+      # Étape 6 : Exécute la suite de tests unitaires avec pytest
       - name: 6. Exécuter les tests unitaires (pytest)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DATABASE_URL: sqlite:///./test.db
+          AWS_ENDPOINT_URL: http://localhost:4566
+          AWS_S3_BUCKET: edona-item-images-bucket
         run: |
           pytest
 
@@ -61,11 +64,17 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
 
-      # Étape 9 : Lance le conteneur avec le Secret GitHub et valide la route /health
+      # Étape 9 : Lance le conteneur avec variables d'environnement et valide /health
       - name: 9. Tester le lancement du conteneur
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DATABASE_URL: sqlite:///./test.db
+          AWS_ENDPOINT_URL: http://localhost:4566
         run: |
-          docker run -d -p 8000:8000 --name test-container -e OPENAI_API_KEY=$OPENAI_API_KEY edona-backend:test
+          docker run -d -p 8000:8000 --name test-container \
+            -e OPENAI_API_KEY=$OPENAI_API_KEY \
+            -e DATABASE_URL=$DATABASE_URL \
+            -e AWS_ENDPOINT_URL=$AWS_ENDPOINT_URL \
+            edona-backend:test
           sleep 5
           curl --fail http://localhost:8000/health || exit 1

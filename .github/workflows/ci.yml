@@ -55,16 +55,17 @@ jobs:
         run: |
           docker build --no-cache -t edona-backend:test .
 
-  # Étape 8 : Scan Trivy strictement ciblé sur l'image Docker
+  # Étape 8 : Scan Trivy avec prise en compte du .trivyignore
       - name: 8. Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         env:
           TRIVY_DISABLE_VEX_NOTICE: "true"
         with:
-          scan-type: 'image'                   # <-- FORCE le scan d'image (ignore le repo/workspace)
+          scan-type: 'image'
           image-ref: 'edona-backend:test'
           docker-host: 'unix:///var/run/docker.sock'
-          ignore-unfixed: true                 # <-- IGNOREL'OS Debian non patché
+          trivyignores: '.trivyignore'         # <-- AJOUT DE CETTE LIGNE
+          ignore-unfixed: true
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
